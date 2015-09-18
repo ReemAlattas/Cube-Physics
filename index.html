@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Cubelets</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+		<style>
+			html, body {
+				width: 100%;
+				height: 100%;
+			}
+
+			body {
+				background-color: #ffffff;
+				margin: 0;
+				overflow: hidden;
+				font-family: arial;
+			}
+
+			#blocker {
+
+				position: absolute;
+
+				width: 100%;
+				height: 100%;
+
+				background-color: rgba(0,0,0,0.5);
+
+			}
+
+			#instructions {
+
+				width: 100%;
+				height: 100%;
+
+				display: -webkit-box;
+				display: -moz-box;
+				display: box;
+
+				-webkit-box-orient: horizontal;
+				-moz-box-orient: horizontal;
+				box-orient: horizontal;
+
+				-webkit-box-pack: center;
+				-moz-box-pack: center;
+				box-pack: center;
+
+				-webkit-box-align: center;
+				-moz-box-align: center;
+				box-align: center;
+
+				color: #ffffff;
+				text-align: center;
+
+				cursor: pointer;
+
+			}
+
+		</style>
+    </head>
+    <body>
+    <div id="container"></div>
+
+    <script Src="libs/three.js"></script>
+    <script Src="libs/stats.min.js"></script>
+	<script Src="libs/Detector.js"></script>
+	<script Src="libs/cannon.js"></script>
+	<script Src="libs/SimplexNoise.js"></script>
+
+	<script src="shaders/portalShader.js"></script>
+	<script Src="shaders/SkyShader.js"></script>
+
+	<script Src="player/player.js"></script>
+    <script Src="player/inventory.js"></script>
+    <script Src="player/objectControls.js"></script>
+    <script Src="player/playerControls.js"></script>
+
+    <script Src="environment/environment.js"></script>
+    <script Src="environment/sky.js"></script>
+
+	<script Src="gameObjects/gameObject.js"></script>
+	<Script Src="gameObjects/abilities.js"></script>
+	<script Src="gameObjects/passiveBlock.js"></script>
+	<script Src="gameObjects/rotateBlock.js"></script>
+	<Script Src="gameObjects/item.js"></script>
+	<script Src="gameObjects/portal.js"></script>
+	<script Src="gameObjects/playerStartPoint.js"></script>
+
+	<script Src="pointerLocker.js"></script>
+	<script Src="RNG.js"></script>
+	<script Src="hud.js"></script>
+	<script Src="loader.js"></script>
+	<script Src="keyHandler.js"></script>
+	<script Src="levelHandler.js"></script>
+	<script Src="levelMaker.js"></script>
+
+	<div id="blocker">
+		<div id="instructions">
+			<span style="font-size:40px">Click to play</span>
+			<br />
+			(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
+		</div>
+	</div>
+
+	<script>
+		var gridUnits = 0.125;
+		var eps = 0.0005;
+
+		if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+		var updateLoop = false;
+
+		var pointerLocker;
+		var scene, renderer, camera, clock, delta, time;
+		var world, physicsMaterial, objectMaterial;
+		var raycaster = new THREE.Raycaster();
+		var environment, player, hud, loader;
+
+		var render_stats;
+
+		var width = window.innerWidth / 2;
+		var height = window.innerHeight / 2;
+
+		var up = new THREE.Vector3( 0, 1, 0 );
+		var down = new THREE.Vector3( 0, -1, 0 );
+		var front = new THREE.Vector3( 1, 0, 0 );
+		var back = new THREE.Vector3( -1, 0, 0 );
+		var left = new THREE.Vector3( 0, 0, 1 );
+		var right = new THREE.Vector3( 0, 0, -1 );
+
+		var red = 0xFF0000;
+		var yellow = 0xFFFF00;
+		var green = 0x00b200;
+		var white = 0xFFFFFF;
+		var blue = 0x000099;
+
+		var colors = [ red, yellow, green, blue ];
+
+		function initScene() {
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setClearColor( 0xabcdef );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.gammaInput = true;
+			renderer.gammaOutput = true;
+			renderer.antialias = true;
+			renderer.alpha = true;
+			renderer.autoClear = false;
+			
+			document.body.appendChild( renderer.domElement );
+			window.addEventListener( 'resize', onWindowResize, false );
+
+			camera = new THREE.PerspectiveCamera( 45, width / height, gridUnits/7, 20000.0 * gridUnits );
+			clock = new THREE.Clock();
+			scene = new THREE.Scene( camera );
+		}
+
+		function switchLevel( levelPath ) {
+			scene = new THREE.Scene( camera );
+			initPhysics();
+			initPlayer();
+			keyHandler = new KeyHandler();
+			initHUD();
+			initEnvironment();
+			levelHandler.loadLevel( levelPath );
+		}
+
+
+		function initEnvironment() {
+			environment = new Environment( scene );
+			environment.init();
+		}
+	
+
+		function initPlayer() {
+			player = new Player();
+			player.getControls().changeMode( "walk" );
+			player.addToGame( scene, world );
+			player.changePosition( new THREE.Vector3( 75.0 * gridUnits, 8.0 * gridUnits, 75.0 * gridUnits ) );
+		}
+
+		function initPhysics() {
+			world = new CANNON.World();
+			world.quatNormalizeSkip = 0;
+			world.quatNormalizeFast = false;
+
+			var solver = new CANNON.GSSolver();
+			solver.iterations = 7;
+			solver.tolerance = 0.1;
+			world.solver = solver;
+
+			world.gravity.set(0,-48 * gridUnits ,0);
+			world.broadphase = new CANNON.NaiveBroadphase();
+			world.broadphase.useBoundingBoxes = true;
+
+			physicsMaterial = new CANNON.Material("slipperyMaterial");
+			objectMaterial = new CANNON.Material("slipperyMaterial");
+
+			var physicsContactMaterial = new CANNON.ContactMaterial(physicsMaterial,
+			                                                         objectMaterial,
+			                                                        {
+										    friction: 0.0,
+										    restitution: 0.5,
+										    contactEquationStiffness: 1e8,
+										    contactEquationRegularizationTime: 3,
+										    frictionEquationStiffness: 1e7,
+										    frictionEquationRelaxation: 3
+										});
+			world.addContactMaterial(physicsContactMaterial);
+
+		}
+
+		function initRenderStats() {
+			render_stats = new Stats();
+			render_stats.domElement.style.position = 'absolute';
+			render_stats.domElement.style.top = '1px';
+			render_stats.domElement.style.zIndex = 100;
+			document.body.appendChild( render_stats.domElement );
+		}
+
+		function onWindowResize() {
+			width = window.innerWidth / 2;
+			height = window.innerHeight / 2;
+
+			camera.aspect = width / height;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+
+			hud.onWindowResize();
+			if ( updateLoop === false ) {
+				renderer.render( scene, camera );
+				renderer.clearDepth();
+				hud.render();
+			}
+		}
+
+		function initHUD() {
+			hud = new HUD();
+			hud.init();
+		}
+
+
+		function pauseGame() {
+			updateLoop = false;
+			player.pause();
+		}
+
+		function unpauseGame() {
+			updateLoop = true;
+			player.unpause();
+		}
+
+		function loop() {
+			delta = 0.017;// ~1/60 s
+			requestAnimationFrame( loop, renderer.domElement );
+			if ( updateLoop === true ) {
+
+				environment.update( delta );
+
+				world.step( delta );
+
+				player.update(delta);
+
+				render_stats.update();
+
+				renderer.clear();
+				renderer.render( scene, camera );
+				renderer.clearDepth();
+				hud.render();
+
+			}
+		}
+		initScene();
+		initPhysics();
+		initPlayer();
+
+		pointerLocker = new PointerLocker();
+		initRenderStats();
+		loader = new Loader();
+		keyHandler = new KeyHandler();
+
+		levelHandler = new LevelHandler();
+		initHUD();
+		initEnvironment();
+		levelHandler.loadLevel( "levels/blank.json" );
+		loop();
+
+        </script>
+    </body>
+</html>

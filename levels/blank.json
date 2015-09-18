@@ -1,0 +1,16 @@
+[  
+   [  
+      {  
+         "type":"passiveBlock",
+         "color":16777215,
+         "quantity":99
+      },
+      {  
+         "type":"rotateBlock",
+         "color":16711680,
+         "quantity":99
+      }
+   ],
+   [  
+   ]
+]
