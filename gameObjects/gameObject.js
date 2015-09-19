@@ -70,15 +70,11 @@ GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilit
 */
 	this.addBody = function( inBody ) {
 		body = inBody;
-		body.quaternion.x = scope.quaternion.x;		
-		body.quaternion.y = scope.quaternion.y;
-		body.quaternion.z = scope.quaternion.z;
-		body.quaternion.w = scope.quaternion.w;
 	};
 
-	this.addToBody = function( inGameObject, inShape ) {
+	this.addToBody = function( inGameObject, inShape, offset ) {
 		scope.add( inGameObject );
-		body.addShape( inShape, new CANNON.Vec3( 0, 0, gridUnits) );
+		body.addShape( inShape, new CANNON.Vec3( offset.x, offset.y, offset.z ) );
 	}
 
 	this.useHighlightMaterial = function() {

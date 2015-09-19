@@ -202,12 +202,33 @@ ObjectControls = function( inPlayer ) {
 
 					var normalMatrix = new THREE.Matrix3().getNormalMatrix( atObject.object.matrixWorld );
 					var worldFaceNormal = atObject.face.normal.clone().applyMatrix3( normalMatrix ).normalize();
-					//if ( atObject.object.name == "GameObject" ) {
-					//	inObj.position.copy( atObject.object.position.clone().add( worldFaceNormal.multiplyScalar( gridUnits ) ) );
-					//	inObj.quaternion.copy( atObject.object.quaternion );
-					//	var boxShape = new CANNON.Box(new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
-					//	atObject.object.addToBody( inObj, boxShape );
-					//} else {
+					var worldPosition = new THREE.Vector3();
+					worldPosition.setFromMatrixPosition( atObject.object.matrixWorld );
+					
+					if ( atObject.object.name == "GameObject" ) {
+						var root = atObject.object.userData.root
+						inObj.userData.root = root;
+
+						var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits );
+
+						//var offsetRoot = offsetAtObject.add( worldPosition.sub( root.position ) );
+						var offsetRoot;
+						if ( atObject.object == root ) {
+							offsetRoot = offsetAtObject;
+						} else {
+							offsetRoot = offsetAtObject.add( atObject.object.position );
+						}
+
+						inObj.position.copy( offsetRoot );
+						root.add( inObj );
+
+						var boxShape = new CANNON.Box( new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
+
+						//inObj.addBody( atObject.object.getBody() );
+						root.getBody().addShape( boxShape, new CANNON.Vec3( offsetRoot.x, offsetRoot.y, offsetRoot.z ) );
+						//atObject.object.addToBody( inObj, boxShape, offsetRoot );
+					} else {
+					
 						inObj.position.copy( atObject.point ).add( worldFaceNormal.multiplyScalar( gridUnits/2 ) );
 						inObj.position.divideScalar( gridUnits ).floor().multiplyScalar( gridUnits ).addScalar( gridUnits/2 );
 						var boxShape = new CANNON.Box(new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
@@ -215,11 +236,12 @@ ObjectControls = function( inPlayer ) {
 						boxBody.addShape(boxShape);
 						inObj.addBody( boxBody );
 						inObj.addBodyToWorld();
+						inObj.userData.root = inObj;
 						environment.addPuzzleObject( inObj );
-					//}
+						scene.add( inObj );
+					}
 
 					inObj.useBaseMaterial();
-					scene.add( inObj );
 					player.inventory.decrementQuantity();
 				}
 			}
