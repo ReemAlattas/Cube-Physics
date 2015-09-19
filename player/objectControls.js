@@ -226,6 +226,7 @@ ObjectControls = function( inPlayer ) {
 
 						//inObj.addBody( atObject.object.getBody() );
 						root.getBody().addShape( boxShape, new CANNON.Vec3( offsetRoot.x, offsetRoot.y, offsetRoot.z ) );
+						updateCOM( root.getBody() );
 						//atObject.object.addToBody( inObj, boxShape, offsetRoot );
 					} else {
 					
@@ -247,6 +248,25 @@ ObjectControls = function( inPlayer ) {
 			}
 		}
 	};
+
+	var updateCOM = function( body ) {
+		//first calculate the center of mass
+		var com = new CANNON.Vec3();
+		body.shapeOffsets.forEach( function( offset ) {
+			com = com.vadd( offset );
+		});
+		com.scale( 1/body.shapes.length );
+		console.log( com );
+
+		body.position = body.position.vadd( com );
+
+		//move the shapes
+		body.shapeOffsets.forEach( function( offset ) {
+			offset = offset.vsub( com );
+		});
+		console.log( shapeOffsets );
+
+	}
 
 
 	this.onObjectLoad = function( inObject ) {
