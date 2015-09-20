@@ -211,22 +211,30 @@ ObjectControls = function( inPlayer ) {
 
 						var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits );
 
+						
 						//var offsetRoot = offsetAtObject.add( worldPosition.sub( root.position ) );
-						var offsetRoot;
+						var meshOffset;
 						if ( atObject.object == root ) {
-							offsetRoot = offsetAtObject;
+							meshOffset = offsetAtObject;
 						} else {
-							offsetRoot = offsetAtObject.add( atObject.object.position );
+							meshOffset = offsetAtObject.add( atObject.object.position );
 						}
+						
 
-						inObj.position.copy( offsetRoot );
+						//var offset = worldPosition - bodyPosition + offsetAtObject
+
+
+						var bodyOffset = worldPosition.add( offsetAtObject );
+						console.log( worldPosition );
+						console.log( root.getBody().position );
+						inObj.position.copy( meshOffset );
 						root.add( inObj );
 
 						var boxShape = new CANNON.Box( new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
 
 						//inObj.addBody( atObject.object.getBody() );
-						root.getBody().addShape( boxShape, new CANNON.Vec3( offsetRoot.x, offsetRoot.y, offsetRoot.z ) );
-						updateCOM( root.getBody() );
+						root.getBody().addShape( boxShape, new CANNON.Vec3( bodyOffset.x, bodyOffset.y, bodyOffset.z ) );
+						//updateCOM( root.getBody() );
 						//atObject.object.addToBody( inObj, boxShape, offsetRoot );
 					} else {
 					
@@ -253,20 +261,18 @@ ObjectControls = function( inPlayer ) {
 		//first calculate the center of mass
 		var com = new CANNON.Vec3();
 		body.shapeOffsets.forEach( function( offset ) {
-			com = com.vadd( offset );
+			com.vadd( offset, com );
 		});
-		com.scale( 1/body.shapes.length );
-		console.log( com );
+		com = com.scale( 1/body.shapes.length );
 
-		body.position = body.position.vadd( com );
-
-		//move the shapes
+		//move the shapes so the body origin is at the COM
 		body.shapeOffsets.forEach( function( offset ) {
-			offset = offset.vsub( com );
+			offset.vsub( com, offset );
 		});
-		console.log( shapeOffsets );
 
-	}
+		//now move the body so the shapes' net displacement is 0
+		body.position.vadd( com, body.position );
+	};
 
 
 	this.onObjectLoad = function( inObject ) {
