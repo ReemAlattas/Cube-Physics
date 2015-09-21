@@ -36,7 +36,7 @@ Player = function() {
 		q.setFromAxisAngle( new CANNON.Vec3( 1, 0, 0 ), -Math.PI / 2 );
 		playerShape.transformAllPoints( new CANNON.Vec3(), q );
 
-		var playerBody = new CANNON.Body({ mass: 100, type: CANNON.Body.DYNAMIC, material: physicsMaterial });
+		var playerBody = new CANNON.Body({ mass: 1000, type: CANNON.Body.DYNAMIC, material: physicsMaterial });
 		playerBody.addShape( playerShape );
 		playerBody.linearDamping = 0.999;
 

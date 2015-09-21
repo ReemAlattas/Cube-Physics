@@ -193,8 +193,8 @@ ObjectControls = function( inPlayer ) {
 	}
 
 
-	var placeAtReticle = function( inObj ) {
-		if ( inObj != null ) {
+	var placeAtReticle = function( inObject ) {
+		if ( inObject != null ) {
 			var atObject = getIntersectAtReticle();
 			if ( atObject != null ) {
 				var distance = player.getPosition().distanceTo( atObject.point );
@@ -205,51 +205,106 @@ ObjectControls = function( inPlayer ) {
 					var worldPosition = new THREE.Vector3();
 					worldPosition.setFromMatrixPosition( atObject.object.matrixWorld );
 					
-					if ( atObject.object.name == "GameObject" ) {
-						var root = atObject.object.userData.root
-						inObj.userData.root = root;
-						var body = root.body;
+					if ( atObject.object.objectType == "passiveBlock" ) {
+						attachToRoot( atObject, inObject );
+					} else if ( atObject.object.objectType == "rotateBlock" ) {
+						if ( atObject.face.normal.equals( up ) ) {
+							var newRoot = createNewRoot( atObject, inObject );
+							var atRoot = atObject.object.userData.root;
 
-						var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits );
-						var offset = offsetAtObject.add( atObject.object.position );
+							var offsetAtObject = worldFaceNormal.multiplyScalar( gridUnits );
+							var offset = offsetAtObject.add( worldPosition );
+							newRoot.position.copy( offset );
+							newRoot.quaternion.copy( atRoot.quaternion );
+							newRoot.body.position.copy( newRoot.position );
+							newRoot.body.quaternion.copy( newRoot.quaternion );
+
+							var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits/2 );
+							var offset = offsetAtObject.add( atObject.object.position );
+
 						
-						inObj.position.copy( offset );
-						root.add( inObj );
+							var pivotA = convertVec( down.clone().multiplyScalar( gridUnits/2 ) );
+							var axisA = convertVec( up );
+							var pivotB = convertVec( offset );
+							var axisB = convertVec( up );
+					        var constraint = new CANNON.HingeConstraint( newRoot.body, atRoot.body, { "pivotA": pivotA,
+					        																		  "axisA": axisA,
+					        																		  "pivotB": pivotB,
+					        																		  "axisB": axisB,
+					        																		  "maxForce": 1e12 });
+					        constraint.enableMotor();
+					        constraint.setMotorSpeed( 1 );
+					        constraint.setMotorMaxForce( 10000 );
 
-						var boxShape = new CANNON.Box( new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
-						body.addShape( boxShape, new CANNON.Vec3( offset.x, offset.y, offset.z ) );
-						body.mass += 10;
-
-						updateCOM( body, root );
-
+							newRoot.userData.constraints.push( { "constraint": constraint, "letter": "A" } );
+							atRoot.userData.constraints.push( { "constraint": constraint, "letter": "B" }  );	
+	                        world.addConstraint( constraint );
+							world.add( newRoot.body );
+							environment.addPuzzleObject( newRoot );
+							scene.add( newRoot );
+						} else {
+							attachToRoot( atObject, inObject );
+						}
 					} else {
-						var boxShape = new CANNON.Box(new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
-						var boxBody = new CANNON.Body({ mass: 10, material: objectMaterial });
-						boxBody.addShape(boxShape);
+						var root = createNewRoot( atObject, inObject );
 
-						var rootObj = new THREE.Object3D();
-						rootObj.position.copy( atObject.point ).add( worldFaceNormal.multiplyScalar( gridUnits/2 ) );
-						rootObj.position.divideScalar( gridUnits ).floor().multiplyScalar( gridUnits ).addScalar( gridUnits/2 );
-						rootObj.name = "GameObject";
-						inObj.userData.root = rootObj;
-						rootObj.add( inObj );
-						boxBody.position.copy( rootObj.position );
-						rootObj.update = function() {
-							this.position.copy( this.body.position );
-							this.quaternion.copy( this.body.quaternion );
-						};
-						rootObj.body = boxBody;
-						world.add( rootObj.body );
-						environment.addPuzzleObject( rootObj );
-						scene.add( rootObj );
+						root.position.copy( atObject.point ).add( worldFaceNormal.multiplyScalar( gridUnits/2 ) );
+						root.position.divideScalar( gridUnits ).floor().multiplyScalar( gridUnits ).addScalar( gridUnits/2 );
+						root.body.position.copy( root.position );
+
+						world.add( root.body );
+						environment.addPuzzleObject( root );
+						scene.add( root );
 					}
 
-					inObj.useBaseMaterial();
+					inObject.useBaseMaterial();
 					player.inventory.decrementQuantity();
 				}
 			}
 		}
 	};
+
+	var convertVec = function( threeVector3 ) {
+		var cannonVec3 = new CANNON.Vec3( threeVector3.x, threeVector3.y, threeVector3.z );
+		return cannonVec3;
+	};
+
+	var attachToRoot = function( atObject, inObject ) {
+		var root = atObject.object.userData.root
+		inObject.userData.root = root;
+		var body = root.body;
+
+		var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits );
+		var offset = offsetAtObject.add( atObject.object.position );
+		
+		inObject.position.copy( offset );
+		root.add( inObject );
+
+		var boxShape = new CANNON.Box( new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
+		body.addShape( boxShape, new CANNON.Vec3( offset.x, offset.y, offset.z ) );
+		body.mass += 100;
+
+		updateCOM( body, root );	
+	}
+
+	var createNewRoot = function( atObject, inObject ) {
+		var boxShape = new CANNON.Box(new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
+		var boxBody = new CANNON.Body({ mass: 100, material: objectMaterial });
+		boxBody.addShape(boxShape);
+
+		var root = new THREE.Object3D();
+		root.name = "GameObject";
+		inObject.userData.root = root;
+		root.add( inObject );
+		root.update = function() {
+			this.position.copy( this.body.position );
+			this.quaternion.copy( this.body.quaternion );
+		};
+		root.body = boxBody;
+		root.userData.constraints = [];
+
+		return root;
+	}
 
 	var updateCOM = function( body, mesh ) {
 		//first calculate the center of mass
@@ -267,9 +322,17 @@ ObjectControls = function( inPlayer ) {
 		//now move the body so the shapes' net displacement is 0
 		body.position.vadd( com, body.position );
 
-		//mesh.position.( com );
+		//and do the same with the meshes
 		mesh.children.forEach( function( m ) {
 			m.position.sub( com );
+		});
+
+		mesh.userData.constraints.forEach( function( c ) {
+			if ( c.letter == "A") { 
+				c.constraint.pivotA.vsub( com, c.constraint.pivotA );
+			} else { 
+				c.constraint.pivotB.vsub( com, c.constraint.pivotB );
+			}
 		});
 	};
 
