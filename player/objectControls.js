@@ -208,46 +208,40 @@ ObjectControls = function( inPlayer ) {
 					if ( atObject.object.name == "GameObject" ) {
 						var root = atObject.object.userData.root
 						inObj.userData.root = root;
+						var body = root.body;
 
 						var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits );
-
+						var offset = offsetAtObject.add( atObject.object.position );
 						
-						//var offsetRoot = offsetAtObject.add( worldPosition.sub( root.position ) );
-						var meshOffset;
-						if ( atObject.object == root ) {
-							meshOffset = offsetAtObject;
-						} else {
-							meshOffset = offsetAtObject.add( atObject.object.position );
-						}
-						
-
-						//var offset = worldPosition - bodyPosition + offsetAtObject
-
-
-						var bodyOffset = worldPosition.add( offsetAtObject );
-						console.log( worldPosition );
-						console.log( root.getBody().position );
-						inObj.position.copy( meshOffset );
+						inObj.position.copy( offset );
 						root.add( inObj );
 
 						var boxShape = new CANNON.Box( new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
+						body.addShape( boxShape, new CANNON.Vec3( offset.x, offset.y, offset.z ) );
+						body.mass += 10;
 
-						//inObj.addBody( atObject.object.getBody() );
-						root.getBody().addShape( boxShape, new CANNON.Vec3( bodyOffset.x, bodyOffset.y, bodyOffset.z ) );
-						//updateCOM( root.getBody() );
-						//atObject.object.addToBody( inObj, boxShape, offsetRoot );
+						updateCOM( body, root );
+
 					} else {
-					
-						inObj.position.copy( atObject.point ).add( worldFaceNormal.multiplyScalar( gridUnits/2 ) );
-						inObj.position.divideScalar( gridUnits ).floor().multiplyScalar( gridUnits ).addScalar( gridUnits/2 );
 						var boxShape = new CANNON.Box(new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
-						var boxBody = new CANNON.Body({ mass: 100, material: objectMaterial });
+						var boxBody = new CANNON.Body({ mass: 10, material: objectMaterial });
 						boxBody.addShape(boxShape);
-						inObj.addBody( boxBody );
-						inObj.addBodyToWorld();
-						inObj.userData.root = inObj;
-						environment.addPuzzleObject( inObj );
-						scene.add( inObj );
+
+						var rootObj = new THREE.Object3D();
+						rootObj.position.copy( atObject.point ).add( worldFaceNormal.multiplyScalar( gridUnits/2 ) );
+						rootObj.position.divideScalar( gridUnits ).floor().multiplyScalar( gridUnits ).addScalar( gridUnits/2 );
+						rootObj.name = "GameObject";
+						inObj.userData.root = rootObj;
+						rootObj.add( inObj );
+						boxBody.position.copy( rootObj.position );
+						rootObj.update = function() {
+							this.position.copy( this.body.position );
+							this.quaternion.copy( this.body.quaternion );
+						};
+						rootObj.body = boxBody;
+						world.add( rootObj.body );
+						environment.addPuzzleObject( rootObj );
+						scene.add( rootObj );
 					}
 
 					inObj.useBaseMaterial();
@@ -257,13 +251,13 @@ ObjectControls = function( inPlayer ) {
 		}
 	};
 
-	var updateCOM = function( body ) {
+	var updateCOM = function( body, mesh ) {
 		//first calculate the center of mass
 		var com = new CANNON.Vec3();
 		body.shapeOffsets.forEach( function( offset ) {
 			com.vadd( offset, com );
 		});
-		com = com.scale( 1/body.shapes.length );
+		com.scale( 1/body.shapes.length, com );
 
 		//move the shapes so the body origin is at the COM
 		body.shapeOffsets.forEach( function( offset ) {
@@ -272,6 +266,11 @@ ObjectControls = function( inPlayer ) {
 
 		//now move the body so the shapes' net displacement is 0
 		body.position.vadd( com, body.position );
+
+		//mesh.position.( com );
+		mesh.children.forEach( function( m ) {
+			m.position.sub( com );
+		});
 	};
 
 

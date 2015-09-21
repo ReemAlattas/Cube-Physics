@@ -1,7 +1,7 @@
 GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilities ) {
 	var scope = this;
 
-	var body = null;
+	scope.body = null;
 
 	this.animatingRotation = false;
 	var rotFrames = 14;
@@ -22,11 +22,11 @@ GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilit
 	var animateRotation = function() { 
 		if ( currentRotFrame <= rotFrames ) {
 			scope.quaternion.slerp( targetQ, currentRotFrame / rotFrames );
-			if ( body !== null ) {
-				body.quaternion.x = scope.quaternion.x;
-				body.quaternion.y = scope.quaternion.y;
-				body.quaternion.z = scope.quaternion.z;
-				body.quaternion.w = scope.quaternion.w;
+			if ( scope.ody !== null ) {
+				scope.body.quaternion.x = scope.quaternion.x;
+				scope.body.quaternion.y = scope.quaternion.y;
+				scope.body.quaternion.z = scope.quaternion.z;
+				scope.body.quaternion.w = scope.quaternion.w;
 			}
 			currentRotFrame++;
 		} else {
@@ -37,28 +37,28 @@ GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilit
 	};
 
 	this.onWorldUnpause = function() {
-		body.mass = 100;
+		scope.body.mass = 100;
 	};
 
 	this.onWorldPause = function() {
-		body.mass = 100;
+		scope.body.mass = 100;
 	}
 
 	this.getBody = function() {
-		return body;
+		return scope.body;
 	};
 	
 	this.addBodyToWorld = function() {
-		if ( body != null ) {
-			body.position.copy( scope.position );
-			body.quaternion.copy( new CANNON.Quaternion( scope.quaternion.x, scope.quaternion.y, scope.quaternion.z, scope.quaternion.w ) );
+		if ( scope.body != null ) {
+			scope.body.position.copy( scope.position );
+			scope.body.quaternion.copy( new CANNON.Quaternion( scope.quaternion.x, scope.quaternion.y, scope.quaternion.z, scope.quaternion.w ) );
 
-			world.add( body );
+			world.add( scope.body );
 		}
 	};
 
 	this.removeBodyFromWorld = function() {
-		world.remove( body );
+		world.remove( scope.body );
 	};
 
 /*
@@ -69,12 +69,12 @@ GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilit
 	};
 */
 	this.addBody = function( inBody ) {
-		body = inBody;
+		scope.body = inBody;
 	};
 
 	this.addToBody = function( inGameObject, inShape, offset ) {
 		scope.add( inGameObject );
-		body.addShape( inShape, new CANNON.Vec3( offset.x, offset.y, offset.z ) );
+		scope.body.addShape( inShape, new CANNON.Vec3( offset.x, offset.y, offset.z ) );
 	}
 
 	this.useHighlightMaterial = function() {
@@ -113,9 +113,9 @@ GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilit
 			}
 			scope.matrixWorldNeedsUpdate = true;
 		}
-		if ( body != null ) {
-			scope.position.copy( body.position );
-			scope.quaternion.copy( body.quaternion );
+		if ( scope.body != null ) {
+			scope.position.copy( scope.body.position );
+			scope.quaternion.copy( scope.body.quaternion );
 		}
 
 	};
