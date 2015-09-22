@@ -2,7 +2,7 @@ Loader = function ( ) {
 	var jsonLoader = new THREE.JSONLoader;
 
 	var loadObjectBody = function( object ) {
-        	var objectBody = new CANNON.Body({ mass: 0, material: objectMaterial });
+        var objectBody = new CANNON.Body({ mass: 0, material: objectMaterial });
 		var rawVerts = object.geometry.vertices;
                 var rawFaces = object.geometry.faces.slice();
 
@@ -47,22 +47,29 @@ Loader = function ( ) {
 		var callback = inCallback;
 		var abilities = inAbilities;
 
-		this.load = function( ) {
-			var boxWidth = gridUnits;
-			var geometry = new THREE.BoxGeometry( boxWidth, boxWidth, boxWidth );
+		var onLoad = function( geometry, materials ) {
+			var scaleVec = new THREE.Vector3( gridUnits/2, gridUnits/2, gridUnits/2 );
+			var scaleMat = new THREE.Matrix4();
+			scaleMat.scale( scaleVec );
+			geometry.applyMatrix( scaleMat );
+			geometry.mergeVertices();
+			geometry.computeVertexNormals();
+			geometry.computeFaceNormals();
 
-			var texture = THREE.ImageUtils.loadTexture( 'textures/crate.gif' );
-
-			var baseMaterial = new THREE.MeshBasicMaterial( { color: color, map: texture } );
-			baseMaterial.transparent = true;
-			var highlightMaterial = new THREE.MeshBasicMaterial( {color: 0x66FFFF, map: texture } );
+			var texture = THREE.ImageUtils.loadTexture( 'textures/passiveCubelet.png' );
+			var baseMaterial = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, specular: 0xFFFFFF, map: texture } );
+			baseMaterial.transparent = false;
+			var highlightMaterial = new THREE.MeshPhongMaterial( { emissive: 0x66FFFF, map: texture } );
 			var passiveBlock = new PassiveBlock( geometry, baseMaterial, highlightMaterial, color, abilities );
-			//var body = loadBoxBody( boxWidth, boxWidth, boxWidth );
 			passiveBlock.position.copy( position );
 			passiveBlock.quaternion.copy( quaternion );
-			//passiveBlock.addBody( body );
 			callback( passiveBlock );	
-		};
+
+		}
+
+		this.load = function() {
+			jsonLoader.load( "objects/cubelet.json", onLoad );	
+		}
 	}
 
 	RotateBlockLoader = function( inPosition, inQuaternion, inColor, inCallback, inAbilities ) {
@@ -71,23 +78,49 @@ Loader = function ( ) {
 		var color = inColor;
 		var callback = inCallback;
 		var abilities = inAbilities;
+		var rotateBlock;
 
-		this.load = function( ) {
-			var boxWidth = gridUnits;
-			var geometry = new THREE.BoxGeometry( boxWidth, boxWidth, boxWidth );
+		var onLoadSpinner = function( geometry, materials ) {
+			var scaleVec = new THREE.Vector3( gridUnits/2.9, gridUnits/2.9, gridUnits/2.9 );
+			var scaleMat = new THREE.Matrix4();
+			scaleMat.scale( scaleVec );
+			geometry.applyMatrix( scaleMat );
+			geometry.mergeVertices();
+			geometry.computeVertexNormals();
+			geometry.computeFaceNormals();
 
-			var texture = THREE.ImageUtils.loadTexture( 'textures/snow.jpg' );			
+			var texture = THREE.ImageUtils.loadTexture( 'textures/rotateCubeletSpinner.png' );
+			var material = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, specular: 0xFFFFFF, side: THREE.BackSide, map: texture } );
+			var spinner = new THREE.Mesh( geometry, material );
+			spinner.objectType = "spinner";
+			spinner.position.copy( up.clone().multiplyScalar( gridUnits/2 ) );
+			rotateBlock.addSpinner( spinner );
+			
+			callback( rotateBlock );	
+		}
 
-			var baseMaterial = new THREE.MeshBasicMaterial( { color: color, map: texture } );
-			baseMaterial.transparent = true;
-			var highlightMaterial = new THREE.MeshBasicMaterial( {color: 0x66FFFF, map: texture } );
-			var rotateBlock = new RotateBlock( geometry, baseMaterial, highlightMaterial, color, abilities );
-			//var body = loadBoxBody( boxWidth, boxWidth, boxWidth );
+		var onLoadCubelet = function( geometry, materials ) {
+			var scaleVec = new THREE.Vector3( gridUnits/2, gridUnits/2, gridUnits/2 );
+			var scaleMat = new THREE.Matrix4();
+			scaleMat.scale( scaleVec );
+			geometry.applyMatrix( scaleMat );
+			geometry.mergeVertices();
+			geometry.computeVertexNormals();
+			geometry.computeFaceNormals();
+
+			var texture = THREE.ImageUtils.loadTexture( 'textures/rotateCubelet.png' );
+			var baseMaterial = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, specular: 0xFFFFFF, map: texture } );
+			baseMaterial.transparent = false;
+			var highlightMaterial = new THREE.MeshPhongMaterial( { emissive: 0x66FFFF, map: texture } );
+			rotateBlock = new RotateBlock( geometry, baseMaterial, highlightMaterial, color, abilities );
 			rotateBlock.position.copy( position );
 			rotateBlock.quaternion.copy( quaternion );
-			//rotateBlock.addBody( body );
-			callback( rotateBlock );	
-		};
+			jsonLoader.load( "objects/spinner.json", onLoadSpinner );	
+		}
+
+		this.load = function() {
+			jsonLoader.load( "objects/cubelet.json", onLoadCubelet );	
+		}
 	}
 
 

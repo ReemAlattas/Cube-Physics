@@ -1,6 +1,6 @@
 var Sky = function() {
 	var sky;
-	var sun, sunLight;
+	var sun, backLight;
 	var time = 0;
 	var dayLength = 300; //seconds
 	var radius = 120;
@@ -17,8 +17,15 @@ var Sky = function() {
 		sky.mesh.visible = true;
 		scene.add( sky.mesh );
 
+		//sun = new THREE.PointLight( );
+		//scene.add( sun );
 
-		sun = new THREE.Mesh( new THREE.SphereGeometry( 2, 30, 30 ), new THREE.MeshBasicMaterial({color: 0xffffff, wireframe: false }));
+		sun = new THREE.DirectionalLight( 0xffffff, 0.7 );
+		scene.add( sun );
+
+		backLight = new THREE.DirectionalLight( 0xAAAAAA, 0.5 );
+		scene.add( backLight );
+
 		//sun.position.y = radius;
 		//sun.visible = true;
 		//scene.add( sun );
@@ -33,6 +40,7 @@ var Sky = function() {
 		sun.position.z = radius * Math.sin(theta) * Math.cos(phi);
 		sun.position.x = radius * Math.sin(theta) * Math.sin(phi); 
 		sun.position.y = radius * Math.cos(theta);
+		backLight.position.copy( sun.position.clone().multiplyScalar( -1 ) );
 		sky.uniforms.sunPosition.value.copy( new THREE.Vector3( sun.position.x, -sun.position.y, sun.position.z ) );
 	}
 };

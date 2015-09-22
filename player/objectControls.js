@@ -199,18 +199,15 @@ ObjectControls = function( inPlayer ) {
 			if ( atObject != null ) {
 				var distance = player.getPosition().distanceTo( atObject.point );
 				if ( distance > minPlacingRadius && distance < maxPlacingRadius ) {
-
-					var normalMatrix = new THREE.Matrix3().getNormalMatrix( atObject.object.matrixWorld );
-					var worldFaceNormal = atObject.face.normal.clone().applyMatrix3( normalMatrix ).normalize();
-					var worldPosition = new THREE.Vector3();
-					worldPosition.setFromMatrixPosition( atObject.object.matrixWorld );
-					
 					if ( atObject.object.objectType == "passiveBlock" ) {
 						attachToRoot( atObject, inObject );
 					} else if ( atObject.object.objectType == "rotateBlock" ) {
-						if ( atObject.face.normal.equals( up ) ) {
+						var normal = getLocalPointNormal( atObject );
+						if ( normal.equals( up ) ) {
+							var worldPosition = getWorldPosition( atObject );
 							var newRoot = createNewRoot( atObject, inObject );
 							var atRoot = atObject.object.userData.root;
+							var worldFaceNormal = getWorldFaceNormal( atObject );
 
 							var offsetAtObject = worldFaceNormal.multiplyScalar( gridUnits );
 							var offset = offsetAtObject.add( worldPosition );
@@ -246,6 +243,7 @@ ObjectControls = function( inPlayer ) {
 							attachToRoot( atObject, inObject );
 						}
 					} else {
+						var worldFaceNormal = getWorldFaceNormal( atObject );
 						var root = createNewRoot( atObject, inObject );
 
 						root.position.copy( atObject.point ).add( worldFaceNormal.multiplyScalar( gridUnits/2 ) );
@@ -264,17 +262,45 @@ ObjectControls = function( inPlayer ) {
 		}
 	};
 
+	var getWorldFaceNormal = function( atObject ) {
+		var normalMatrix = new THREE.Matrix3().getNormalMatrix( atObject.object.matrixWorld );
+		var worldFaceNormal = atObject.face.normal.clone().applyMatrix3( normalMatrix ).normalize();
+		return worldFaceNormal
+	}
+
+	var getLocalPointNormal = function( atObject ) {
+		var worldPosition = getWorldPosition( atObject );
+		var normal = up;
+		var localPoint = atObject.object.worldToLocal( atObject.point );
+		var tol = gridUnits/2 - gridUnits/12;
+		if ( localPoint.x > tol ) { normal = front; }
+		else if ( localPoint.y > tol ) { normal = up; }
+		else if ( localPoint.z > tol ) { normal = left; }
+		else if ( localPoint.x < -tol ) { normal = back; }
+		else if ( localPoint.y < -tol ) { normal = down; }
+		else if ( localPoint.z < -tol ) { normal = right; }
+
+		return normal;
+	}
+
+	var getWorldPosition = function( atObject ) {
+		var worldPosition = new THREE.Vector3();
+		worldPosition.setFromMatrixPosition( atObject.object.matrixWorld );
+		return worldPosition;
+	}
+
 	var convertVec = function( threeVector3 ) {
 		var cannonVec3 = new CANNON.Vec3( threeVector3.x, threeVector3.y, threeVector3.z );
 		return cannonVec3;
 	};
 
 	var attachToRoot = function( atObject, inObject ) {
+		var normal = getLocalPointNormal( atObject );
 		var root = atObject.object.userData.root
 		inObject.userData.root = root;
 		var body = root.body;
 
-		var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits );
+		var offsetAtObject = normal.clone().multiplyScalar( gridUnits );
 		var offset = offsetAtObject.add( atObject.object.position );
 		
 		inObject.position.copy( offset );
@@ -297,6 +323,9 @@ ObjectControls = function( inPlayer ) {
 		inObject.userData.root = root;
 		root.add( inObject );
 		root.update = function() {
+			this.children.forEach( function( c ) {
+				c.update();
+			})
 			this.position.copy( this.body.position );
 			this.quaternion.copy( this.body.quaternion );
 		};

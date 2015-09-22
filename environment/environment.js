@@ -18,7 +18,7 @@ Environment = function( scene ) {
 	};
 
 	var initAmbientLight = function() {
-		var ambientLight = new THREE.AmbientLight( 0xFFFFFF );
+		var ambientLight = new THREE.AmbientLight( 0xAAAAAA );
 		scene.add( ambientLight );
 	};
 
@@ -26,7 +26,7 @@ Environment = function( scene ) {
 
 		var floorSize = 100;
 		var texGridDim = 100;
-		var nGrids = floorSize/texGridDim;
+		var nGrids = 5;
 		var geometry = new THREE.PlaneBufferGeometry( floorSize, floorSize, nGrids, nGrids);
 		geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
@@ -48,7 +48,7 @@ Environment = function( scene ) {
 		bumpMap.repeat.x = texGridDim;
 		bumpMap.repeat.y = texGridDim;
 
-		var material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: bumpMap, bumpScale: .05 } );
+		var material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: bumpMap, bumpScale: .005 } );
 
 		floorPlane.material = material;
 
@@ -86,6 +86,11 @@ Environment = function( scene ) {
 
 	this.intersectPuzzleObjects = function( rCaster ) {
 		var intersects = rCaster.intersectObjects( puzzleObjects, true );
+		for ( var i = 0; i < intersects.length; i++ ) {
+			if ( intersects[i].object.objectType == "spinner" ) {
+				intersects[i].object = intersects[i].object.parent;
+			}
+		}
 		return intersects;
 	}; 
 

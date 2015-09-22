@@ -114,8 +114,8 @@ GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilit
 			scope.matrixWorldNeedsUpdate = true;
 		}
 		if ( scope.body != null ) {
-			scope.position.copy( scope.body.position );
-			scope.quaternion.copy( scope.body.quaternion );
+			//scope.position.copy( scope.body.position );
+			//scope.quaternion.copy( scope.body.quaternion );
 		}
 
 	};
