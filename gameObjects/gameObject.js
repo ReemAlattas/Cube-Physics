@@ -4,6 +4,7 @@ GameObject = function ( geometry, baseMaterial, highlightMaterial, color, abilit
 	scope.body = null;
 
 	this.animatingRotation = false;
+	scope.pickerMesh = null;
 	var rotFrames = 14;
 	var currentRotFrame = 0;
 

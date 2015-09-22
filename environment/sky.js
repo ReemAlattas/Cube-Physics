@@ -41,6 +41,13 @@ var Sky = function() {
 		sun.position.x = radius * Math.sin(theta) * Math.sin(phi); 
 		sun.position.y = radius * Math.cos(theta);
 		backLight.position.copy( sun.position.clone().multiplyScalar( -1 ) );
+		if ( backLight.position.y < 0.0 ) {
+			sun.intensity = 0.1;
+			backLight.intensity = 0.05;
+		} else {
+			sun.intensity = 0.7;
+			backLight.intensity = 0.5;
+		}
 		sky.uniforms.sunPosition.value.copy( new THREE.Vector3( sun.position.x, -sun.position.y, sun.position.z ) );
 	}
 };

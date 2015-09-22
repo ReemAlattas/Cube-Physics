@@ -3,7 +3,8 @@ Environment = function( scene ) {
 	var sky, floorPlane;
 	this.chunkSize = 25;
 
-	var puzzleObjects = [];
+	var pickerObjects = [];
+	var roots = [];
 	var mode = 'play';
 
 	this.init = function() {
@@ -63,7 +64,7 @@ Environment = function( scene ) {
 		floorPlane.visible = true;
 		scene.add( floorPlane );
 		floorPlane.name = "floor";
-		puzzleObjects.push(floorPlane);
+		pickerObjects.push(floorPlane);
 
 		var floorBody = new CANNON.Body({ mass: 0, material: objectMaterial });
         var floorShape = new CANNON.Plane();
@@ -73,77 +74,52 @@ Environment = function( scene ) {
 	};
 
 	this.unpauseWorld = function() {
-		puzzleObjects.forEach( function( o ) {
+		pickerObjects.forEach( function( o ) {
 			if ( o.abilities.isDynamic == true ) o.onWorldUnpause();
 		});
 	};
 
 	this.pauseWorld = function() {
-		puzzleObjects.forEach( function( o ) {
+		pickerObjects.forEach( function( o ) {
 			if ( o.abilities.isDynamic == true ) o.onWorldPause();
 		});
 	};
 
-	this.intersectPuzzleObjects = function( rCaster ) {
-		var intersects = rCaster.intersectObjects( puzzleObjects, true );
-		for ( var i = 0; i < intersects.length; i++ ) {
-			if ( intersects[i].object.objectType == "spinner" ) {
-				intersects[i].object = intersects[i].object.parent;
-			}
-		}
+	this.intersectPickerObjects = function( rCaster ) {
+		var intersects = rCaster.intersectObjects( pickerObjects, true );
+
 		return intersects;
 	}; 
 
-	this.getPuzzleObjects = function() {
-		return puzzleObjects;
+	this.getPickerObjects = function() {
+		return pickerObjects;
 	};
 
-	this.addPuzzleObject = function( obj ) {
-		puzzleObjects.push( obj );
-
+	this.addPickerObject = function( obj ) {
+		pickerObjects.push( obj );
 	};
 
-	this.removePuzzleObject = function( obj ) {
-		var index = puzzleObjects.indexOf( obj );
+	this.addRoot = function( inRoot ) {
+		roots.push( inRoot );
+	}
+
+	this.removePickerObject = function( obj ) {
+		var index = pickerObjects.indexOf( obj );
 		if (index > -1) {
-			var body = puzzleObjects[index].getBody();
+			var body = pickerObjects[index].getBody();
 			if ( body != null ) world.remove( body ); 
 			scene.remove( obj );
-			puzzleObjects.splice(index, 1);
-			var smallPerturbation = new THREE.Vector3( gridUnits * (0.33 - Math.random() ),  gridUnits * (0.33 - Math.random() ),  gridUnits * (0.33 - Math.random() ) );
-			var itemDropPos = new THREE.Vector3();
-			itemDropPos.copy( obj.position ).add( smallPerturbation );
-			var itemColor = obj.color;
-			itemType = obj.objectType;
-
-			loader.loadItemToScene( itemDropPos, new THREE.Quaternion(), onItemLoad, itemType, itemColor );
+			pickerObjects.splice(index, 1);
 
 			updateScene = true;
 		}
 
 	};
 
-	var onItemLoad = function( item ) {
-		item.addBodyToWorld();
-		scene.add( item );
-		puzzleObjects.push( item );
-	};
-
-	this.removeItem = function( item ) {
-		var index = puzzleObjects.indexOf( item );
-		if (index > -1) {
-			world.remove( puzzleObjects[index].getBody() ); 
-			scene.remove( item );
-			puzzleObjects.splice(index, 1);
-		}
-	};
-
 	this.update = function( delta ) {
-		for ( var i = 0; i < puzzleObjects.length; i++ ) {
-			if ( puzzleObjects[i].name == "GameObject" || puzzleObjects[i].name == "item") {
-				puzzleObjects[i].update();
-			}
-		}
+		roots.forEach( function( r ) {
+			r.update();
+		});
 		sky.render( delta );
 	}
 };

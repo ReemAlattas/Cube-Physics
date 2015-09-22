@@ -154,7 +154,7 @@ ObjectControls = function( inPlayer ) {
 		raycaster.ray.set( player.getPosition(), player.getDirection() );
 		var intersects = [];
 		if ( environment != null ) {
-			intersects = environment.intersectPuzzleObjects( raycaster );
+			intersects = environment.intersectPickerObjects( raycaster );
 		}
 
 		for ( var i = 0; i < intersects.length; i++ ) {
@@ -166,22 +166,13 @@ ObjectControls = function( inPlayer ) {
 	};
 
 	var getIntersectAtReticle = function( ) {
-		var intersect;
 		raycaster.ray.set( player.getPosition(), player.getDirection() );
 		var intersects = [];
 		if ( environment != null ) {
-			intersects = environment.intersectPuzzleObjects( raycaster );
+			intersects = environment.intersectPickerObjects( raycaster );
 		}
 
-		for ( var i = 0; i < intersects.length; i++ ) {
-			var objName = intersects[ i ].object.name;
-			if ( objName !== "item" ) {
-				intersect = intersects[ i ];
-				break;
-			}
-		}
-
-		return intersect;
+		return intersects[0];
 	};
 
 	var loadBoxBody = function( xLength, yLength, zLength ) {
@@ -199,9 +190,9 @@ ObjectControls = function( inPlayer ) {
 			if ( atObject != null ) {
 				var distance = player.getPosition().distanceTo( atObject.point );
 				if ( distance > minPlacingRadius && distance < maxPlacingRadius ) {
-					if ( atObject.object.objectType == "passiveBlock" ) {
+					if ( atObject.object.parent.objectType == "passiveBlock" ) {
 						attachToRoot( atObject, inObject );
-					} else if ( atObject.object.objectType == "rotateBlock" ) {
+					} else if ( atObject.object.parent.objectType == "rotateBlock" ) {
 						var normal = getLocalPointNormal( atObject );
 						if ( normal.equals( up ) ) {
 							var worldPosition = getWorldPosition( atObject );
@@ -237,7 +228,8 @@ ObjectControls = function( inPlayer ) {
 							atRoot.userData.constraints.push( { "constraint": constraint, "letter": "B" }  );	
 	                        world.addConstraint( constraint );
 							world.add( newRoot.body );
-							environment.addPuzzleObject( newRoot );
+							environment.addPickerObject( inObject.pickerMesh );
+							environment.addRoot( newRoot );
 							scene.add( newRoot );
 						} else {
 							attachToRoot( atObject, inObject );
@@ -251,7 +243,8 @@ ObjectControls = function( inPlayer ) {
 						root.body.position.copy( root.position );
 
 						world.add( root.body );
-						environment.addPuzzleObject( root );
+						environment.addPickerObject( inObject.pickerMesh );
+						environment.addRoot( root );
 						scene.add( root );
 					}
 
@@ -269,6 +262,7 @@ ObjectControls = function( inPlayer ) {
 	}
 
 	var getLocalPointNormal = function( atObject ) {
+		/*
 		var worldPosition = getWorldPosition( atObject );
 		var normal = up;
 		var localPoint = atObject.object.worldToLocal( atObject.point );
@@ -279,6 +273,8 @@ ObjectControls = function( inPlayer ) {
 		else if ( localPoint.x < -tol ) { normal = back; }
 		else if ( localPoint.y < -tol ) { normal = down; }
 		else if ( localPoint.z < -tol ) { normal = right; }
+		*/
+		var normal = atObject.face.normal;
 
 		return normal;
 	}
@@ -295,13 +291,13 @@ ObjectControls = function( inPlayer ) {
 	};
 
 	var attachToRoot = function( atObject, inObject ) {
-		var normal = getLocalPointNormal( atObject );
-		var root = atObject.object.userData.root
+		var normal = atObject.face.normal;
+		var root = atObject.object.parent.userData.root
 		inObject.userData.root = root;
 		var body = root.body;
 
 		var offsetAtObject = normal.clone().multiplyScalar( gridUnits );
-		var offset = offsetAtObject.add( atObject.object.position );
+		var offset = offsetAtObject.add( atObject.object.parent.position );
 		
 		inObject.position.copy( offset );
 		root.add( inObject );
@@ -309,6 +305,8 @@ ObjectControls = function( inPlayer ) {
 		var boxShape = new CANNON.Box( new CANNON.Vec3( gridUnits/2, gridUnits/2, gridUnits/2 ) );
 		body.addShape( boxShape, new CANNON.Vec3( offset.x, offset.y, offset.z ) );
 		body.mass += 100;
+
+		environment.addPickerObject( inObject.pickerMesh );
 
 		updateCOM( body, root );	
 	}
