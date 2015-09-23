@@ -1,7 +1,7 @@
 var Sky = function() {
 	var sky;
 	var sun, backLight;
-	var time = 0;
+	var time = 25;
 	var dayLength = 300; //seconds
 	var radius = 120;
 
@@ -43,7 +43,7 @@ var Sky = function() {
 		backLight.position.copy( sun.position.clone().multiplyScalar( -1 ) );
 		
 
-		if ( sun.position.y < 10.0 ) {
+		if ( sun.position.y < 5.0 ) {
 			sun.intensity = 0.2;
 			backLight.intensity = 0.1;
 		} else {

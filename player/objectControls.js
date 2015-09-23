@@ -192,7 +192,7 @@ ObjectControls = function( inPlayer ) {
 				if ( distance > minPlacingRadius && distance < maxPlacingRadius ) {
 					if ( atObject.object.parent.objectType == "passiveBlock" && inObject.objectType != "rotateBlock") {
 						attachToRoot( atObject, inObject );
-					} else if ( atObject.object.parent.objectType == "rotateBlock" || inObject.objectType == "rotateBlock" ) {
+					} else if ( atObject.object.parent.objectType == "rotateBlock" || ( inObject.objectType == "rotateBlock" & atObject.object.name != "floor" ) ) {
 						var normal = getLocalPointNormal( atObject );
 						if ( normal.equals( up ) && atObject.object.parent.objectType == "rotateBlock" ) {
 							attachToRotation( atObject, inObject );
@@ -250,7 +250,7 @@ ObjectControls = function( inPlayer ) {
         																		  "maxForce": 1e12 });
         constraint.enableMotor();
         constraint.setMotorSpeed( 1 );
-        constraint.setMotorMaxForce( 10000 );
+        constraint.setMotorMaxForce( 1000000 );
 
 		newRoot.userData.constraints.push( { "constraint": constraint, "letter": "A" } );
 		atRoot.userData.constraints.push( { "constraint": constraint, "letter": "B" }  );	
@@ -393,7 +393,9 @@ ObjectControls = function( inPlayer ) {
 		});
 
 		//now move the body so the shapes' net displacement is 0
-		body.position.vadd( com, body.position );
+		var worldCOM = new CANNON.Vec3();
+		body.vectorToWorldFrame( com, worldCOM );
+		body.position.vadd( worldCOM, body.position );
 
 		//and do the same with the meshes
 		mesh.children.forEach( function( m ) {
