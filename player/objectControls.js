@@ -190,47 +190,14 @@ ObjectControls = function( inPlayer ) {
 			if ( atObject != null ) {
 				var distance = player.getPosition().distanceTo( atObject.point );
 				if ( distance > minPlacingRadius && distance < maxPlacingRadius ) {
-					if ( atObject.object.parent.objectType == "passiveBlock" ) {
+					if ( atObject.object.parent.objectType == "passiveBlock" && inObject.objectType != "rotateBlock") {
 						attachToRoot( atObject, inObject );
-					} else if ( atObject.object.parent.objectType == "rotateBlock" ) {
+					} else if ( atObject.object.parent.objectType == "rotateBlock" || inObject.objectType == "rotateBlock" ) {
 						var normal = getLocalPointNormal( atObject );
-						if ( normal.equals( up ) ) {
-							var worldPosition = getWorldPosition( atObject );
-							var newRoot = createNewRoot( atObject, inObject );
-							var atRoot = atObject.object.userData.root;
-							var worldFaceNormal = getWorldFaceNormal( atObject );
-
-							var offsetAtObject = worldFaceNormal.multiplyScalar( gridUnits );
-							var offset = offsetAtObject.add( worldPosition );
-							newRoot.position.copy( offset );
-							newRoot.quaternion.copy( atRoot.quaternion );
-							newRoot.body.position.copy( newRoot.position );
-							newRoot.body.quaternion.copy( newRoot.quaternion );
-
-							var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits/2 );
-							var offset = offsetAtObject.add( atObject.object.position );
-
-						
-							var pivotA = convertVec( down.clone().multiplyScalar( gridUnits/2 ) );
-							var axisA = convertVec( up );
-							var pivotB = convertVec( offset );
-							var axisB = convertVec( up );
-					        var constraint = new CANNON.HingeConstraint( newRoot.body, atRoot.body, { "pivotA": pivotA,
-					        																		  "axisA": axisA,
-					        																		  "pivotB": pivotB,
-					        																		  "axisB": axisB,
-					        																		  "maxForce": 1e12 });
-					        constraint.enableMotor();
-					        constraint.setMotorSpeed( 1 );
-					        constraint.setMotorMaxForce( 10000 );
-
-							newRoot.userData.constraints.push( { "constraint": constraint, "letter": "A" } );
-							atRoot.userData.constraints.push( { "constraint": constraint, "letter": "B" }  );	
-	                        world.addConstraint( constraint );
-							world.add( newRoot.body );
-							environment.addPickerObject( inObject.pickerMesh );
-							environment.addRoot( newRoot );
-							scene.add( newRoot );
+						if ( normal.equals( up ) && atObject.object.parent.objectType == "rotateBlock" ) {
+							attachToRotation( atObject, inObject );
+						} else if ( normal.equals( down ) && inObject.objectType == "rotateBlock" ) {
+							attachRotation( atObject, inObject );
 						} else {
 							attachToRoot( atObject, inObject );
 						}
@@ -254,6 +221,85 @@ ObjectControls = function( inPlayer ) {
 			}
 		}
 	};
+
+	var attachToRotation = function( atObject, inObject ) {
+		var worldPosition = getWorldPosition( atObject );
+		var newRoot = createNewRoot( atObject, inObject );
+		var atRoot = atObject.object.parent.userData.root;
+		var worldFaceNormal = getWorldFaceNormal( atObject );
+
+		var offsetAtObject = worldFaceNormal.multiplyScalar( gridUnits );
+		var offset = offsetAtObject.add( worldPosition );
+		newRoot.position.copy( offset );
+		newRoot.quaternion.copy( atRoot.quaternion );
+		newRoot.body.position.copy( newRoot.position );
+		newRoot.body.quaternion.copy( newRoot.quaternion );
+
+		var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits/2 );
+		var offset = offsetAtObject.add( atObject.object.parent.position );
+
+	
+		var pivotA = convertVec( down.clone().multiplyScalar( gridUnits/2 ) );
+		var axisA = convertVec( up );
+		var pivotB = convertVec( offset );
+		var axisB = convertVec( up );
+        var constraint = new CANNON.HingeConstraint( newRoot.body, atRoot.body, { "pivotA": pivotA,
+        																		  "axisA": axisA,
+        																		  "pivotB": pivotB,
+        																		  "axisB": axisB,
+        																		  "maxForce": 1e12 });
+        constraint.enableMotor();
+        constraint.setMotorSpeed( 1 );
+        constraint.setMotorMaxForce( 10000 );
+
+		newRoot.userData.constraints.push( { "constraint": constraint, "letter": "A" } );
+		atRoot.userData.constraints.push( { "constraint": constraint, "letter": "B" }  );	
+        world.addConstraint( constraint );
+		world.add( newRoot.body );
+		environment.addPickerObject( inObject.pickerMesh );
+		environment.addRoot( newRoot );
+		scene.add( newRoot );
+	}
+
+
+	var attachRotation = function( atObject, inObject ) {
+		var worldPosition = getWorldPosition( atObject );
+		var newRoot = createNewRoot( atObject, inObject );
+		var atRoot = atObject.object.parent.userData.root;
+		var worldFaceNormal = getWorldFaceNormal( atObject );
+
+		var offsetAtObject = worldFaceNormal.multiplyScalar( gridUnits );
+		var offset = offsetAtObject.add( worldPosition );
+		newRoot.position.copy( offset );
+		newRoot.quaternion.copy( atRoot.quaternion );
+		newRoot.body.position.copy( newRoot.position );
+		newRoot.body.quaternion.copy( newRoot.quaternion );
+
+		var offsetAtObject = atObject.face.normal.clone().multiplyScalar( gridUnits/2 );
+		var offset = offsetAtObject.add( atObject.object.parent.position );
+
+	
+		var pivotA = convertVec( up.clone().multiplyScalar( gridUnits/2 ) );
+		var axisA = convertVec( up );
+		var pivotB = convertVec( offset );
+		var axisB = convertVec( up );
+        var constraint = new CANNON.HingeConstraint( newRoot.body, atRoot.body, { "pivotA": pivotA,
+        																		  "axisA": axisA,
+        																		  "pivotB": pivotB,
+        																		  "axisB": axisB,
+        																		  "maxForce": 1e12 });
+        constraint.enableMotor();
+        constraint.setMotorSpeed( 1 );
+        constraint.setMotorMaxForce( 10000 );
+
+		newRoot.userData.constraints.push( { "constraint": constraint, "letter": "A" } );
+		atRoot.userData.constraints.push( { "constraint": constraint, "letter": "B" }  );	
+        world.addConstraint( constraint );
+		world.add( newRoot.body );
+		environment.addPickerObject( inObject.pickerMesh );
+		environment.addRoot( newRoot );
+		scene.add( newRoot );
+	}
 
 	var getWorldFaceNormal = function( atObject ) {
 		var normalMatrix = new THREE.Matrix3().getNormalMatrix( atObject.object.matrixWorld );

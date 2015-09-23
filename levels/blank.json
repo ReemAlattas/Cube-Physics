@@ -7,7 +7,7 @@
       },
       {  
          "type":"rotateBlock",
-         "color":16711680,
+         "color":16777215,
          "quantity":99
       }
    ],

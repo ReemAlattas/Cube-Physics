@@ -135,7 +135,7 @@ HUD = function () {
 		};
 
 		this.addToScene = function() {
-			THREE.ImageUtils.loadTexture( "textures/hud/itemIcon.png", undefined, onIconLoad );
+			THREE.ImageUtils.loadTexture( "textures/hud/" + type + "Icon.png", undefined, onIconLoad );
 			var numberPath = "textures/hud/" + quantity.toString() + ".png";
 			THREE.ImageUtils.loadTexture( numberPath, undefined, onNumberLoad );
 		};

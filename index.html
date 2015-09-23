@@ -109,7 +109,7 @@
 		var updateLoop = false;
 
 		var pointerLocker;
-		var scene, pickerScene, renderer, camera, clock, delta, time;
+		var scene, renderer, camera, clock, delta, time;
 		var world, physicsMaterial, objectMaterial;
 		var raycaster = new THREE.Raycaster();
 		var environment, player, hud, loader;
@@ -151,7 +151,6 @@
 			camera = new THREE.PerspectiveCamera( 45, width / height, gridUnits/7, 20000.0 * gridUnits );
 			clock = new THREE.Clock();
 			scene = new THREE.Scene( camera );
-			pickerScene = new THREE.Scene( camera );
 		}
 
 		function switchLevel( levelPath ) {

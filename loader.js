@@ -57,7 +57,7 @@ Loader = function ( ) {
 			geometry.computeFaceNormals();
 
 			var texture = THREE.ImageUtils.loadTexture( 'textures/passiveCubelet.png' );
-			var baseMaterial = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, specular: 0xFFFFFF, map: texture } );
+			var baseMaterial = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, shininess: 15, specular: 0xFFFF66, map: texture } );
 			baseMaterial.transparent = false;
 			var highlightMaterial = new THREE.MeshPhongMaterial( { emissive: 0x66FFFF, map: texture } );
 			var passiveBlock = new PassiveBlock( geometry, baseMaterial, highlightMaterial, color, abilities );
@@ -96,7 +96,7 @@ Loader = function ( ) {
 			geometry.computeFaceNormals();
 
 			var texture = THREE.ImageUtils.loadTexture( 'textures/rotateCubeletSpinner.png' );
-			var material = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, specular: 0xFFFFFF, side: THREE.BackSide, map: texture } );
+			var material = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, shininess: 15, specular: 0xFFFF66, side: THREE.BackSide, map: texture } );
 			var spinner = new THREE.Mesh( geometry, material );
 			spinner.objectType = "spinner";
 			spinner.position.copy( up.clone().multiplyScalar( gridUnits/2 ) );
@@ -115,12 +115,18 @@ Loader = function ( ) {
 			geometry.computeFaceNormals();
 
 			var texture = THREE.ImageUtils.loadTexture( 'textures/rotateCubelet.png' );
-			var baseMaterial = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, specular: 0xFFFFFF, map: texture } );
+			var baseMaterial = new THREE.MeshPhongMaterial( { color: color, shading: THREE.SmoothShading, shininess: 15, specular: 0xFFFF66, map: texture } );
 			baseMaterial.transparent = false;
 			var highlightMaterial = new THREE.MeshPhongMaterial( { emissive: 0x66FFFF, map: texture } );
 			rotateBlock = new RotateBlock( geometry, baseMaterial, highlightMaterial, color, abilities );
 			rotateBlock.position.copy( position );
 			rotateBlock.quaternion.copy( quaternion );
+
+			var pickerMesh = new THREE.Mesh( new THREE.BoxGeometry( gridUnits, gridUnits, gridUnits ), new THREE.MeshBasicMaterial() );
+			pickerMesh.visible = false;
+			rotateBlock.add( pickerMesh );
+			rotateBlock.pickerMesh = pickerMesh;
+
 			jsonLoader.load( "objects/spinner.json", onLoadSpinner );	
 		}
 
